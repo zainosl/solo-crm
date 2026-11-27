@@ -1,0 +1,19 @@
+name: Test CRM
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --package-lock=false playwright-core@1.56.1
+      - name: Verify examples and backup round trips in Chrome
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/solo-tools-http.log 2>&1 &
+          curl --silent --fail --retry 6 --retry-connrefused http://127.0.0.1:8765/index.html >/dev/null
+          node tests/smoke.cjs

@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一人公司 · 客户管理 CRM</title>
+<link rel="icon" href="data:,">
+<style>
+:root{
+  --bg:#0B0D0F; --bg2:#13161A; --bg3:#1C2026;
+  --text:#F7F8FA; --muted:#A9B0BA; --dim:#4A525C;
+  --accent:#58E1C1; --accent2:#3BB89A; --accent3:#7AF2D8;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
+  --accent-dim:rgba(88,225,193,0.10); --accent-soft:rgba(88,225,193,0.05);
+  --danger:#F6B66B;
+  --board-column:rgba(19,22,26,.55); --board-card:var(--bg3);
+  --font-sans:'Noto Sans SC',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --font-mono:'DM Mono',ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  --radius-sharp:2px; --radius-card:12px;
+}
+html[data-theme="light"]{
+  --board-column:var(--bg3); --board-card:var(--bg2);
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;min-height:100%;}
+body{
+  background:var(--bg); color:var(--text); font-family:var(--font-sans);
+  line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:''; position:fixed; inset:0; z-index:-2; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(88,225,193,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(88,225,193,0.03) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+body::after{
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(circle at 85% 6%,rgba(88,225,193,0.10),transparent 34%),
+    radial-gradient(circle at 6% 92%,rgba(88,225,193,0.05),transparent 32%),
+    linear-gradient(180deg,rgba(11,13,15,0),rgba(11,13,15,0.92));
+}
+a{color:inherit;}
+button{font-family:var(--font-sans);cursor:pointer;}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  padding:18px clamp(16px,4vw,40px); border-bottom:1px solid var(--border);
+  background:rgba(11,13,15,0.7); backdrop-filter:blur(8px);
+  position:sticky; top:0; z-index:40;
+}
+.brand{display:flex; align-items:baseline; gap:10px;}
+.brand .eyebrow{
+  font-family:var(--font-mono); font-size:10px; letter-spacing:.22em; color:var(--accent);
+  text-transform:uppercase; border:1px solid rgba(88,225,193,.3);
+  background:rgba(88,225,193,.025); padding:5px 11px; border-radius:var(--radius-sharp);
+}
+.brand h1{margin:0; font-size:18px; font-weight:700; letter-spacing:-.01em;}
+.brand .sub{color:var(--dim); font-size:12px; font-family:var(--font-mono);}
+.cloud-badge{
+  font-family:var(--font-mono); font-size:11px; letter-spacing:.04em; padding:3px 11px;
+  border-radius:20px; border:1px solid var(--border2); color:var(--muted); white-space:nowrap;
+}
+.cloud-badge.ok{color:var(--accent); border-color:rgba(88,225,193,.4); background:rgba(88,225,193,.07);}
+.cloud-badge.syncing{color:var(--accent3); border-color:rgba(122,242,216,.4);}
+.cloud-badge.error{color:var(--danger); border-color:rgba(246,182,107,.5); background:rgba(246,182,107,.07);}
+.cloud-badge.local{color:var(--dim);}
+.spacer{flex:1;}
+
+.stat-row{display:flex; gap:22px; flex-wrap:wrap;}
+.stat{display:flex; flex-direction:column; line-height:1.2;}
+.stat b{font-size:20px; font-family:var(--font-mono); color:var(--accent);}
+.stat span{font-size:11px; color:var(--dim);}
+
+/* ---------- Controls ---------- */
+.controls{
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  padding:14px clamp(16px,4vw,40px); border-bottom:1px solid var(--border);
+}
+.seg{display:inline-flex; border:1px solid var(--border2); border-radius:var(--radius-sharp); overflow:hidden;}
+.seg button{
+  background:transparent; color:var(--muted); border:none; padding:9px 16px; font-size:13px; font-weight:500;
+  border-right:1px solid var(--border2);
+}
+.seg button:last-child{border-right:none;}
+.seg button.active{background:var(--accent); color:var(--bg); font-weight:700;}
+input.search,select.filter{
+  padding:10px 12px; border-radius:var(--radius-sharp); border:1px solid var(--border2);
+  background:var(--bg); color:var(--text); font:inherit; font-size:13px; outline:none;
+}
+input.search{min-width:200px;}
+input.search:focus,select.filter:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(88,225,193,.08);}
+select.filter{cursor:pointer;}
+
+.btn{
+  border-radius:var(--radius-sharp); padding:10px 18px; font-weight:700; font-size:13px;
+  transition:all .2s; letter-spacing:.04em; border:1px solid;
+}
+.btn-primary{background:var(--accent); color:var(--bg); border-color:var(--accent);}
+.btn-primary:hover{background:var(--accent2); border-color:var(--accent2); transform:translateY(-1px);}
+.btn-ghost{background:transparent; color:var(--muted); border-color:var(--border2);}
+.btn-ghost:hover{border-color:var(--accent); color:var(--accent);}
+
+/* ---------- Board (双轨) ---------- */
+.board{
+  display:flex; flex-direction:column; gap:26px;
+  padding:20px clamp(16px,4vw,40px) 60px;
+}
+.track-head{
+  display:flex; align-items:baseline; gap:12px; margin-bottom:12px;
+  padding-bottom:10px; border-bottom:1px solid var(--border);
+}
+.track-name{font-size:14px; font-weight:700; letter-spacing:.04em; color:var(--text);}
+.track-name::before{content:''; display:inline-block; width:6px; height:14px; background:var(--accent); margin-right:9px; vertical-align:-2px; border-radius:1px;}
+.track-prod{
+  font-family:var(--font-mono); font-size:10px; letter-spacing:.05em; padding:2px 9px;
+  border-radius:var(--radius-sharp); background:rgba(88,225,193,.09); color:var(--accent);
+  border:1px solid rgba(88,225,193,.24);
+}
+.track-hint{font-size:11px; color:var(--dim); font-family:var(--font-mono);}
+.track-count{
+  margin-left:auto; font-family:var(--font-mono); font-size:11px; color:var(--dim);
+  border:1px solid var(--border); border-radius:20px; padding:1px 10px;
+}
+.track-cols{
+  display:grid; grid-auto-flow:column; grid-auto-columns:minmax(232px,1fr);
+  gap:12px; overflow-x:auto; align-items:start; padding-bottom:4px;
+}
+.upsell-btn{
+  width:100%; margin-top:10px; padding:7px 10px; border-radius:var(--radius-sharp);
+  background:rgba(88,225,193,.08); color:var(--accent); border:1px dashed rgba(88,225,193,.4);
+  font-size:12px; font-weight:700; letter-spacing:.03em; transition:all .18s;
+}
+.upsell-btn:hover{background:var(--accent); color:var(--bg); border-style:solid;}
+.col{
+  background:var(--board-column); border:1px solid var(--border); border-radius:var(--radius-card);
+  min-height:120px; display:flex; flex-direction:column;
+}
+.col-head{
+  display:flex; align-items:center; gap:8px; padding:14px 14px 10px;
+  border-bottom:1px solid var(--border); position:sticky; top:0;
+}
+.col-head .dot{width:8px; height:8px; border-radius:50%; flex:none;}
+.col-head h3{margin:0; font-size:13px; font-weight:700; letter-spacing:.02em;}
+.col-head .count{
+  font-family:var(--font-mono); font-size:11px; color:var(--dim);
+  margin-left:auto; background:var(--bg); border:1px solid var(--border); border-radius:20px; padding:1px 9px;
+}
+.col-body{padding:10px; display:flex; flex-direction:column; gap:10px; flex:1;}
+.col-body.drag-over{background:var(--accent-soft); outline:1px dashed var(--accent);}
+
+.ccard{
+  background:var(--board-card); border:1px solid var(--border); border-radius:var(--radius-sharp);
+  border-top:1px solid rgba(88,225,193,.16);
+  padding:13px 13px 11px; cursor:grab; transition:border-color .15s,transform .15s;
+}
+.ccard:hover{border-color:var(--border2); transform:translateY(-1px);}
+.ccard.dragging{opacity:.4;}
+.ccard .row1{display:flex; align-items:center; gap:8px;}
+.ccard .name{font-weight:700; font-size:15px;}
+.ccard .note-wx{font-size:12px; color:var(--muted); margin-top:2px;}
+.ccard .meta{display:flex; flex-wrap:wrap; gap:5px; margin-top:9px;}
+.pill{
+  font-family:var(--font-mono); font-size:10px; letter-spacing:.05em; padding:2px 8px;
+  border-radius:var(--radius-sharp); border:1px solid var(--border2); color:var(--muted);
+}
+.pill.prod{background:rgba(88,225,193,.09); color:var(--accent); border-color:rgba(88,225,193,.24);}
+.pill.src{background:rgba(255,255,255,.03);}
+.ccard .last{font-size:11px; color:var(--dim); margin-top:8px; font-family:var(--font-mono);}
+
+/* ---------- Table view ---------- */
+.tablewrap{padding:20px clamp(16px,4vw,40px) 60px; overflow-x:auto;}
+table{width:100%; border-collapse:collapse; font-size:13px;}
+th,td{text-align:left; padding:11px 12px; border-bottom:1px solid var(--border); vertical-align:top;}
+th{font-size:11px; color:var(--dim); font-family:var(--font-mono); letter-spacing:.08em; text-transform:uppercase; font-weight:500;}
+tbody tr:hover{background:rgba(88,225,193,.03); cursor:pointer;}
+td .name{font-weight:700;}
+.status-chip{font-family:var(--font-mono); font-size:11px; padding:2px 9px; border-radius:20px; border:1px solid var(--border2); white-space:nowrap;}
+
+/* ---------- Modal ---------- */
+.overlay{
+  position:fixed; inset:0; background:rgba(5,6,7,.72); backdrop-filter:blur(4px);
+  display:none; align-items:flex-start; justify-content:center; z-index:80; padding:40px 16px; overflow-y:auto;
+}
+.overlay.open{display:flex;}
+.modal{
+  width:min(560px,100%); background:var(--bg2); border:1px solid var(--border2);
+  border-radius:var(--radius-card); padding:26px; box-shadow:0 30px 100px rgba(0,0,0,.5);
+  border-top:1px solid rgba(88,225,193,.2);
+}
+.modal h2{margin:0 0 18px; font-size:19px; letter-spacing:-.01em;}
+.field{margin-bottom:15px;}
+.field label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-family:var(--font-mono); letter-spacing:.05em;}
+.field input,.field select,.field textarea{
+  width:100%; padding:11px 12px; border-radius:var(--radius-sharp); border:1px solid var(--border2);
+  background:var(--bg); color:var(--text); font:inherit; font-size:14px; outline:none;
+}
+.field textarea{min-height:70px; resize:vertical; line-height:1.6;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(88,225,193,.08);}
+.field2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+
+.log-list{margin:4px 0 0; padding:0; list-style:none; max-height:160px; overflow-y:auto;}
+.log-list li{font-size:12px; color:var(--muted); padding:7px 0; border-bottom:1px solid var(--border); display:flex; gap:9px;}
+.log-list li .t{color:var(--dim); font-family:var(--font-mono); flex:none; font-size:11px; padding-top:1px;}
+.log-add{display:flex; gap:8px; margin-top:8px;}
+.log-add input{flex:1;}
+
+.modal-actions{display:flex; gap:10px; margin-top:22px; align-items:center;}
+.modal-actions .spacer{flex:1;}
+.link-danger{background:none; border:none; color:var(--danger); font-size:13px; cursor:pointer; padding:6px;}
+.link-danger:hover{text-decoration:underline;}
+
+.empty{color:var(--dim); font-size:12px; text-align:center; padding:18px 0; font-style:italic;}
+.hidden{display:none !important;}
+.toast{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--bg3); border:1px solid var(--accent); color:var(--text);
+  padding:11px 20px; border-radius:var(--radius-sharp); font-size:13px; z-index:120;
+  opacity:0; transition:all .3s; box-shadow:0 10px 40px rgba(0,0,0,.4);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+::-webkit-scrollbar{height:9px; width:9px;}
+::-webkit-scrollbar-thumb{background:var(--bg3); border-radius:20px;}
+::-webkit-scrollbar-thumb:hover{background:#2a3038;}
+
+</style>
+<link rel="stylesheet" href="assets/mobile-fixes.css" />
+  <script src="assets/theme-controller.js"></script>
+  <link rel="stylesheet" href="assets/site-theme.css" />
+</head>
+<body>
+
+<div id="app">
+
+<div class="topbar">
+  <div class="brand">
+    <span class="eyebrow">CRM</span>
+    <h1>一人公司 · 客户管理</h1>
+  </div>
+  <span class="brand sub" id="todayLabel"></span>
+  <span class="cloud-badge local" title="数据存储状态">本地模式</span>
+  <div class="spacer"></div>
+  <div class="stat-row" id="statRow"></div>
+</div>
+
+<div class="controls">
+  <div class="seg">
+    <button id="viewBoard" class="active" onclick="setView('board')">看板</button>
+    <button id="viewTable" onclick="setView('table')">表格</button>
+  </div>
+  <div class="seg seg-track" id="boardTrackTabs">
+    <button data-track="sales" class="active" onclick="setActiveTrack(this,'sales')">销售流程</button>
+    <button data-track="delivery" onclick="setActiveTrack(this,'delivery')">交付流程</button>
+  </div>
+  <div class="seg seg-prod">
+    <button data-prod="" class="active" onclick="setProduct(this,'')">全部</button>
+    <button data-prod="01" onclick="setProduct(this,'01')">01 能力判断</button>
+    <button data-prod="02" onclick="setProduct(this,'02')">02 首单冲刺</button>
+  </div>
+  <input type="hidden" id="filterProduct" value="">
+  <input class="search" id="search" type="text" placeholder="搜索姓名 / 微信 / 备注…" oninput="render()">
+  <select class="filter" id="filterSource" onchange="render()">
+    <option value="">全部来源</option>
+  </select>
+  <div class="spacer"></div>
+  <button class="btn btn-ghost" onclick="exportData()">导出</button>
+  <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">导入</button>
+  <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
+  <button class="btn btn-primary" onclick="openModal()">+ 新增客户</button>
+</div>
+
+<div id="boardView" class="board"></div>
+<div id="tableView" class="tablewrap hidden">
+  <table>
+    <thead><tr>
+      <th>姓名</th><th>微信备注</th><th>销售阶段</th><th>交付阶段</th><th>产品</th><th>来源</th><th>联系方式</th><th>最近跟进</th>
+    </tr></thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+</div><!-- /#app -->
+
+<!-- Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">新增客户</h2>
+    <input type="hidden" id="f_id">
+    <div class="field2">
+      <div class="field"><label>姓名 *</label><input type="text" id="f_name" placeholder="客户姓名"></div>
+      <div class="field"><label>微信备注名</label><input type="text" id="f_wx" placeholder="微信里的备注"></div>
+    </div>
+    <div class="field2">
+      <div class="field"><label>销售阶段</label><select id="f_sales_status"></select></div>
+      <div class="field"><label>交付阶段</label><select id="f_delivery_status"></select></div>
+    </div>
+    <div class="field2">
+      <div class="field"><label>体验产品</label>
+        <select id="f_product">
+          <option value="01">01 · 能力资产与商业方向共创</option>
+          <option value="02">02 · 0-1 首单验证共创</option>
+          <option value="无">未指定</option>
+        </select>
+      </div>
+    </div>
+    <div class="field2">
+      <div class="field"><label>来源渠道</label><input type="text" id="f_source" list="srcList" placeholder="小红书 / 朋友推荐 / 社群…"><datalist id="srcList"></datalist></div>
+      <div class="field"><label>联系方式</label><input type="text" id="f_contact" placeholder="微信号 / 手机 / 邮箱"></div>
+    </div>
+    <div class="field">
+      <label>备注</label>
+      <textarea id="f_notes" placeholder="基本情况、需求、特征…"></textarea>
+    </div>
+    <div class="field">
+      <label>跟进记录</label>
+      <ul class="log-list" id="logList"></ul>
+      <div class="log-add">
+        <input type="text" id="logInput" placeholder="新增一条跟进…（回车添加）" onkeydown="if(event.key==='Enter'){event.preventDefault();addLog();}">
+        <button class="btn btn-ghost" onclick="addLog()">添加</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="link-danger" id="deleteBtn" onclick="deleteCustomer()">删除客户</button>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveCustomer()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Config ----------
+   双管道：销售轨(sales) + 交付轨(delivery)
+   已成交、老客待激活的客户可以进入交付流程。
+*/
+const TRACKS = [
+  {key:'sales',    label:'销售流程', hint:'按购买心智推进'},
+  {key:'delivery', label:'交付流程', hint:'按服务履约节点推进'},
+];
+const STAGES = [
+  // 销售轨
+  {key:'intent',       track:'sales',    label:'有意向',       dot:'#A9B0BA'},
+  {key:'deposit',      track:'sales',    label:'已付定金',     dot:'#58E1C1'},
+  {key:'won',          track:'sales',    label:'已成交',       dot:'#7AF2D8'},
+  {key:'reactivation', track:'sales',    label:'老客待激活',   dot:'#3BB89A'},
+  {key:'abandoned',    track:'sales',    label:'已放弃',       dot:'#6F7682'},
+  {key:'lost',         track:'sales',    label:'已流失',       dot:'#F6B66B'},
+  // 交付轨
+  {key:'to_serve',             track:'delivery', label:'待服务',       dot:'#A9B0BA'},
+  {key:'material_collecting',  track:'delivery', label:'整理材料中',   dot:'#A9B0BA'},
+  {key:'material_received',    track:'delivery', label:'材料已提交',   dot:'#58E1C1'},
+  {key:'workspace_connecting', track:'delivery', label:'能力校准中',   dot:'#3BB89A'},
+  {key:'biz_research',         track:'delivery', label:'商业模式加减法', dot:'#7AF2D8'},
+  {key:'biz_model_research',   track:'delivery', label:'商业模式调研', dot:'#58E1C1'},
+  {key:'biz_plan',             track:'delivery', label:'商业模式计划对齐', dot:'#3BB89A'},
+  {key:'biz_run',              track:'delivery', label:'商业模式跑通', dot:'#C4F970'},
+  {key:'served',               track:'delivery', label:'服务完成',     dot:'#3BB89A'},
+  {key:'aftercare',            track:'delivery', label:'售后中',       dot:'#7AF2D8'},
+  {key:'cancelled',            track:'delivery', label:'已取消',       dot:'#6F7682'},
+];
+const STAGE_MAP = Object.fromEntries(STAGES.map(s=>[s.key,s]));
+const stagesOf = (track)=>STAGES.filter(s=>s.track===track);
+const stageField = (track)=>track==='sales'?'salesStatus':'deliveryStatus';
+const orderField = (track)=>track==='sales'?'salesOrder':'deliveryOrder';
+const stageOf = (c,track)=>c[stageField(track)] || (track==='sales'?'intent':'to_serve');
+const orderOf = (c,track)=>Number.isFinite(Number(c[orderField(track)]))?Number(c[orderField(track)]):Number.MAX_SAFE_INTEGER;
+const isClosedOut = (c)=>['lost','abandoned'].includes(stageOf(c,'sales'));
+// 「老客待激活」仍是已经成交并服务过的客户，不能因销售状态变化而退出交付轨。
+const isDeliveryCustomer = (c)=>['won','reactivation'].includes(stageOf(c,'sales'));
+const isInDeliveryFlow = (c)=>isDeliveryCustomer(c) && c.deliveryRemoved!=='yes';
+const PRODUCT_LABEL = {'01':'01 能力判断','02':'02 首单冲刺','无':'未指定'};
+// 旧状态 → 新状态迁移表（兼容历史数据）
+const LEGACY_MAP = {lead:'intent', invited:'intent', trial:'deposit', delivered:'to_serve', serving:'material_received', ability_mine:'material_received', workspace_pending:'workspace_connecting'};
+const KEY = 'solo_tools_crm_v1';
+/* ---------- State ---------- */
+let data = loadLocal();
+let view = 'board';
+let activeTrack = 'sales';
+let modalTrack = 'sales';
+let logsDraft = [];
+
+function loadLocal(){
+  try{ const r = localStorage.getItem(KEY); if(r){ return migrate(JSON.parse(r)); } }catch(e){}
+  return [];
+}
+// 把旧状态值升级到新的双轨状态
+function migrate(arr){
+  if(!Array.isArray(arr)) return [];
+  arr.forEach(c=>{
+    if(LEGACY_MAP[c.salesStatus]){ c.salesStatus=LEGACY_MAP[c.salesStatus]; }
+    if(LEGACY_MAP[c.deliveryStatus]){ c.deliveryStatus=LEGACY_MAP[c.deliveryStatus]; }
+    const oldStatus = LEGACY_MAP[c.status] || c.status;
+    const oldStage = STAGE_MAP[oldStatus];
+    if(c.converted==='yes' && !['lost','abandoned'].includes(c.salesStatus||c.status||'')){
+      c.salesStatus='won';
+      c.status='won';
+
+    }
+    if('converted' in c){
+      delete c.converted;
+
+    }
+    if(!c.salesStatus){
+      c.salesStatus = oldStage?.track==='sales' ? oldStatus : (oldStage?.track==='delivery' ? 'won' : 'intent');
+
+    }
+    if(!c.deliveryStatus){
+      c.deliveryStatus = oldStage?.track==='delivery' ? oldStatus : 'to_serve';
+
+    }
+    if(!STAGE_MAP[c.salesStatus] || STAGE_MAP[c.salesStatus].track!=='sales'){ c.salesStatus='intent'; }
+    if(!STAGE_MAP[c.deliveryStatus] || STAGE_MAP[c.deliveryStatus].track!=='delivery'){ c.deliveryStatus='to_serve'; }
+    c.status = c.salesStatus;
+  });
+  ensureTrackOrders(arr);
+
+  return arr;
+}
+
+function ensureTrackOrders(arr){
+  TRACKS.forEach(t=>{
+    stagesOf(t.key).forEach(s=>{
+      const field=orderField(t.key);
+      const list=arr
+        .filter(c=>stageOf(c,t.key)===s.key && (t.key!=='delivery'||isInDeliveryFlow(c)))
+        .sort((a,b)=>orderOf(a,t.key)-orderOf(b,t.key));
+      list.forEach((c,i)=>{
+        if(!Number.isFinite(Number(c[field]))){ c[field]=(i+1)*1000; }
+      });
+    });
+  });
+}
+
+function persist(){
+  localStorage.setItem(KEY, JSON.stringify(data));
+}
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+/* ---------- Render ---------- */
+function setView(v){
+  view=v;
+  document.getElementById('viewBoard').classList.toggle('active',v==='board');
+  document.getElementById('viewTable').classList.toggle('active',v==='table');
+  document.getElementById('boardView').classList.toggle('hidden',v!=='board');
+  document.getElementById('tableView').classList.toggle('hidden',v!=='table');
+  document.getElementById('boardTrackTabs').classList.toggle('hidden',v!=='board');
+  render();
+}
+
+function setActiveTrack(btn,track){
+  activeTrack=track;
+  document.querySelectorAll('.seg-track button').forEach(b=>b.classList.toggle('active',b===btn));
+  render();
+}
+
+function setProduct(btn,val){
+  document.getElementById('filterProduct').value=val;
+  document.querySelectorAll('.seg-prod button').forEach(b=>b.classList.toggle('active',b===btn));
+  render();
+}
+
+function getFiltered(){
+  const q=document.getElementById('search').value.trim().toLowerCase();
+  const fp=document.getElementById('filterProduct').value;
+  const fs=document.getElementById('filterSource').value;
+  return data.filter(c=>{
+    if(fp && (c.product||'无')!==fp) return false;
+    if(fs && (c.source||'')!==fs) return false;
+    if(q){
+      const blob=[c.name,c.wx,c.notes,c.source,c.contact,(c.logs||[]).map(l=>l.text).join(' ')].join(' ').toLowerCase();
+      if(!blob.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function lastLog(c){ const l=c.logs||[]; return l.length?l[l.length-1]:null; }
+
+function render(){
+  refreshSourceFilters();
+  renderStats();
+  view==='board'?renderBoard():renderTable();
+  document.getElementById('todayLabel').textContent='今天 '+todayStr();
+}
+
+function renderStats(){
+  const total=data.length;
+  const inSales=data.filter(c=>!['lost','abandoned','won'].includes(stageOf(c,'sales'))).length;
+  const inDelivery=data.filter(c=>isInDeliveryFlow(c)&&!['served','aftercare','cancelled'].includes(stageOf(c,'delivery'))).length;
+  const won=data.filter(c=>['won','reactivation'].includes(stageOf(c,'sales'))).length;
+  document.getElementById('statRow').innerHTML=
+    `<div class="stat"><b>${total}</b><span>客户总数</span></div>
+     <div class="stat"><b>${inSales}</b><span>销售跟进中</span></div>
+     <div class="stat"><b>${inDelivery}</b><span>交付推进中</span></div>
+     <div class="stat"><b>${won}</b><span>已成交</span></div>`;
+}
+
+function renderBoard(){
+  const list=getFiltered();
+  const board=document.getElementById('boardView');
+  board.innerHTML='';
+  const fp=document.getElementById('filterProduct').value;
+  const prodTag=fp?`<span class="track-prod">${fp==='01'?'01 能力判断':'02 首单冲刺'}</span>`:'';
+  TRACKS.filter(t=>t.key===activeTrack).forEach(t=>{
+    const trackList=t.key==='delivery'?list.filter(isInDeliveryFlow):list;
+    const tStages=stagesOf(t.key);
+    const tCount=trackList.length;
+    const section=document.createElement('div'); section.className='track';
+    section.innerHTML=`<div class="track-head"><span class="track-name">${t.label}</span>${prodTag}
+      <span class="track-hint">${t.hint}</span><span class="track-count">${tCount}</span></div>`;
+    const cols=document.createElement('div'); cols.className='track-cols';
+    tStages.forEach(s=>{
+      const items=trackList.filter(c=>stageOf(c,t.key)===s.key).sort((a,b)=>orderOf(a,t.key)-orderOf(b,t.key));
+      const col=document.createElement('div'); col.className='col';
+      col.innerHTML=`<div class="col-head"><span class="dot" style="background:${s.dot}"></span><h3>${s.label}</h3><span class="count">${items.length}</span></div>`;
+      const body=document.createElement('div'); body.className='col-body'; body.dataset.track=t.key; body.dataset.stage=s.key;
+      body.addEventListener('dragover',e=>{
+        e.preventDefault(); body.classList.add('drag-over');
+        const dragging=document.querySelector('.ccard.dragging');
+        if(!dragging) return;
+        const empty=body.querySelector('.empty'); if(empty) empty.remove();
+        const after=getDragAfterElement(body,e.clientY);
+        if(after) body.insertBefore(dragging,after); else body.appendChild(dragging);
+      });
+      body.addEventListener('dragleave',()=>body.classList.remove('drag-over'));
+      body.addEventListener('drop',e=>{e.preventDefault(); body.classList.remove('drag-over'); onDrop(e.dataTransfer.getData('id'),t.key,s.key,body);});
+      if(items.length===0) body.innerHTML='<div class="empty">— 空 —</div>';
+      items.forEach(c=>body.appendChild(cardEl(c,t.key)));
+      col.appendChild(body); cols.appendChild(col);
+    });
+    section.appendChild(cols); board.appendChild(section);
+  });
+}
+
+function getDragAfterElement(container,y){
+  const cards=[...container.querySelectorAll('.ccard:not(.dragging)')];
+  return cards.reduce((closest,child)=>{
+    const box=child.getBoundingClientRect();
+    const offset=y-box.top-box.height/2;
+    if(offset<0&&offset>closest.offset) return {offset,element:child};
+    return closest;
+  },{offset:Number.NEGATIVE_INFINITY,element:null}).element;
+}
+
+function cardEl(c,track){
+  const el=document.createElement('div'); el.className='ccard'; el.draggable=true; el.dataset.id=c.id;
+  const ll=lastLog(c);
+  // 01 客户在交付完成/售后阶段，显示「转 02 意向」入口
+  const canUpsell = track==='delivery' && c.product==='01' && ['served','aftercare'].includes(stageOf(c,'delivery'));
+  const pairStage = track==='sales' ? STAGE_MAP[stageOf(c,'delivery')] : STAGE_MAP[stageOf(c,'sales')];
+  const pairLabel = track==='sales' ? '交付' : '销售';
+  const pairText = track==='sales'&&!isInDeliveryFlow(c) ? '未进入' : (pairStage?pairStage.label:'—');
+  el.innerHTML=
+    `<div class="row1"><span class="name">${esc(c.name||'未命名')}</span></div>
+     ${c.wx?`<div class="note-wx">微信：${esc(c.wx)}</div>`:''}
+     <div class="meta">
+       <span class="pill prod">${PRODUCT_LABEL[c.product||'无']}</span>
+       <span class="pill src">${pairLabel}：${pairText}</span>
+       ${c.source?`<span class="pill src">${esc(c.source)}</span>`:''}
+     </div>
+     ${ll?`<div class="last">↳ ${esc(ll.t)} ${esc(ll.text)}</div>`:''}
+     ${canUpsell?`<button class="upsell-btn" data-up="${esc(c.id)}">↗ 转 02 意向</button>`:''}`;
+  el.addEventListener('dragstart',e=>{e.dataTransfer.setData('id',c.id); el.classList.add('dragging');});
+  el.addEventListener('dragend',()=>el.classList.remove('dragging'));
+  el.addEventListener('click',e=>{ if(e.target.dataset.up) return; openModal(c.id,track); });
+  const up=el.querySelector('.upsell-btn');
+  if(up) up.addEventListener('click',e=>{ e.stopPropagation(); upsellTo02(c.id); });
+  return el;
+}
+
+// 一键：01 服务完 → 转 02 销售轨「有意向」
+function upsellTo02(id){
+  const c=data.find(x=>x.id===id); if(!c) return;
+  if(!confirm('把「'+(c.name||'该客户')+'」转入 02 首单冲刺的「有意向」？\n（产品改为 02，回到销售轨）')) return;
+  c.product='02'; c.salesStatus='intent'; c.status='intent';
+  c.logs=c.logs||[]; c.logs.push({t:todayStr(),text:'01 服务完成，转入 02「有意向」'});
+  persist(); render(); toast('已转入 02 意向');
+}
+
+function renderTable(){
+  const list=getFiltered();
+  const tb=document.getElementById('tableBody'); tb.innerHTML='';
+  if(list.length===0){ tb.innerHTML='<tr><td colspan="8" class="empty">没有匹配的客户</td></tr>'; return; }
+  list.forEach(c=>{
+    const ss=STAGE_MAP[stageOf(c,'sales')]; const ds=STAGE_MAP[stageOf(c,'delivery')]; const ll=lastLog(c);
+    const deliveryLabel=isInDeliveryFlow(c)?ds.label:'未进入';
+    const deliveryColor=isInDeliveryFlow(c)?ds.dot:'var(--dim)';
+    const tr=document.createElement('tr'); tr.onclick=()=>openModal(c.id,'sales');
+    tr.innerHTML=
+      `<td><span class="name">${esc(c.name||'未命名')}</span></td>
+       <td>${esc(c.wx||'—')}</td>
+       <td><span class="status-chip" style="color:${ss.dot};border-color:${ss.dot}66">${ss.label}</span></td>
+       <td><span class="status-chip" style="color:${deliveryColor};border-color:${isInDeliveryFlow(c)?ds.dot+'66':'var(--border2)'}">${deliveryLabel}</span></td>
+       <td>${PRODUCT_LABEL[c.product||'无']}</td>
+       <td>${esc(c.source||'—')}</td>
+       <td>${esc(c.contact||'—')}</td>
+       <td style="color:var(--dim);font-size:12px">${ll?esc(ll.t)+' '+esc(ll.text):'—'}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function refreshSourceFilters(){
+  const sources=[...new Set(data.map(c=>c.source).filter(Boolean))].sort();
+  const sel=document.getElementById('filterSource'); const cur=sel.value;
+  sel.innerHTML='<option value="">全部来源</option>'+sources.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  sel.value=cur;
+  document.getElementById('srcList').innerHTML=sources.map(s=>`<option value="${esc(s)}">`).join('');
+}
+
+function onDrop(id,track,stage,body){
+  const c=data.find(x=>x.id===id); if(!c) return;
+  if(track==='delivery'&&!isDeliveryCustomer(c)){ toast('成交后才会进入交付流程'); return; }
+  const stageChanged=stageOf(c,track)!==stage;
+  const field=stageField(track);
+  c[field]=stage;
+  if(track==='sales') c.status=stage;
+  if(stageChanged){
+    c.logs=c.logs||[]; c.logs.push({t:todayStr(),text:'移至「'+STAGE_MAP[stage].label+'」'});
+  }
+  if(stageChanged&&track==='sales'&&['won','reactivation'].includes(stage)){
+    if(!c.deliveryStatus) c.deliveryStatus='to_serve';
+    c.deliveryRemoved='';
+  }
+  updateColumnOrder(track,stage,body);
+  persist(); render(); toast(stageChanged?'已更新状态':'已调整顺序');
+}
+
+function updateColumnOrder(track,stage,body){
+  const field=orderField(track);
+  const ids=body?[...body.querySelectorAll('.ccard')].map(el=>el.dataset.id):[];
+  ids.forEach((id,i)=>{
+    const c=data.find(x=>x.id===id);
+    if(c&&stageOf(c,track)===stage) c[field]=(i+1)*1000;
+  });
+  data
+    .filter(c=>stageOf(c,track)===stage&&!ids.includes(c.id)&&(track!=='delivery'||isInDeliveryFlow(c)))
+    .sort((a,b)=>orderOf(a,track)-orderOf(b,track))
+    .forEach((c,i)=>{ c[field]=(ids.length+i+1)*1000; });
+}
+
+/* ---------- Modal ---------- */
+function fillStageSelect(){
+  document.getElementById('f_sales_status').innerHTML=stagesOf('sales').map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+  document.getElementById('f_delivery_status').innerHTML=stagesOf('delivery').map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+}
+function openModal(id,track='sales'){
+  fillStageSelect(); logsDraft=[];
+  const isEdit=!!id;
+  modalTrack=track;
+  document.getElementById('modalTitle').textContent=isEdit?'编辑客户':'新增客户';
+  document.getElementById('deleteBtn').style.display=isEdit?'block':'none';
+  document.getElementById('deleteBtn').textContent=track==='delivery'?'退出交付流程':'删除客户';
+  if(isEdit){
+    const c=data.find(x=>x.id===id);
+    document.getElementById('f_id').value=c.id;
+    document.getElementById('f_name').value=c.name||'';
+    document.getElementById('f_wx').value=c.wx||'';
+    document.getElementById('f_sales_status').value=stageOf(c,'sales');
+    document.getElementById('f_delivery_status').value=stageOf(c,'delivery');
+    document.getElementById('f_product').value=c.product||'无';
+    document.getElementById('f_source').value=c.source||'';
+    document.getElementById('f_contact').value=c.contact||'';
+    document.getElementById('f_notes').value=c.notes||'';
+    logsDraft=JSON.parse(JSON.stringify(c.logs||[]));
+  }else{
+    ['f_id','f_name','f_wx','f_source','f_contact','f_notes'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('f_sales_status').value='intent';
+    document.getElementById('f_delivery_status').value='to_serve';
+    document.getElementById('f_product').value='01';
+  }
+  renderLogs();
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('f_name').focus(),50);
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
+function renderLogs(){
+  const ul=document.getElementById('logList');
+  if(logsDraft.length===0){ ul.innerHTML='<li style="color:var(--dim);border:none">暂无跟进记录</li>'; return; }
+  ul.innerHTML=logsDraft.map((l,i)=>`<li><span class="t">${esc(l.t)}</span><span>${esc(l.text)}</span></li>`).join('');
+  ul.scrollTop=ul.scrollHeight;
+}
+function addLog(){
+  const inp=document.getElementById('logInput'); const v=inp.value.trim();
+  if(!v) return;
+  logsDraft.push({t:todayStr(),text:v}); inp.value=''; renderLogs();
+}
+function saveCustomer(){
+  const name=document.getElementById('f_name').value.trim();
+  if(!name){ toast('请填写姓名'); document.getElementById('f_name').focus(); return; }
+  const id=document.getElementById('f_id').value;
+  const existing=id?data.find(x=>x.id===id):null;
+  const wasDeliveryCustomer=existing?isDeliveryCustomer(existing):false;
+  const obj={
+    name,
+    wx:document.getElementById('f_wx').value.trim(),
+    salesStatus:document.getElementById('f_sales_status').value,
+    deliveryStatus:document.getElementById('f_delivery_status').value,
+    product:document.getElementById('f_product').value,
+    source:document.getElementById('f_source').value.trim(),
+    contact:document.getElementById('f_contact').value.trim(),
+    notes:document.getElementById('f_notes').value.trim(),
+    logs:logsDraft,
+  };
+  obj.status=obj.salesStatus;
+  if(['won','reactivation'].includes(obj.salesStatus)&&!wasDeliveryCustomer){ obj.deliveryRemoved=''; }
+  let row;
+  if(id){ row=data.find(x=>x.id===id); Object.assign(row,obj); }
+  else{ obj.id=uid(); data.push(obj); row=obj; }
+  persist(); closeModal(); render(); toast(id?'已保存':'已新增客户');
+}
+function deleteCustomer(){
+  const id=document.getElementById('f_id').value;
+  if(!id) return;
+  const c=data.find(x=>x.id===id);
+  if(modalTrack==='delivery'&&c){
+    if(!confirm('从交付流程移除这个客户？销售流程中的客户记录会保留。')) return;
+    c.deliveryRemoved='yes';
+    c.logs=c.logs||[]; c.logs.push({t:todayStr(),text:'已从交付流程移除'});
+    persist(); closeModal(); render(); toast('已退出交付流程');
+    return;
+  }
+  if(!confirm('确定删除这个客户？此操作不可撤销。')) return;
+  data=data.filter(x=>x.id!==id); persist(); closeModal(); render(); toast('已删除');
+}
+
+/* ---------- Import / Export ---------- */
+function exportData(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='一人公司CRM_'+todayStr()+'.json'; a.click();
+  toast('已导出备份');
+}
+function importData(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const arr=JSON.parse(r.result);
+      if (!Array.isArray(arr)) throw new Error('array required');
+      const ids = new Set();
+      const rows = arr.map(c => {
+        if (!c || typeof c.name !== 'string' || !c.name.trim()) throw new Error('missing name');
+        if (c.logs != null && (!Array.isArray(c.logs) || c.logs.some(l => !l || typeof l.text !== 'string'))) {
+          throw new Error('invalid logs');
+        }
+        const id = typeof c.id === 'string' && c.id && !ids.has(c.id) ? c.id : uid();
+        ids.add(id);
+        return {
+          id, name:c.name.trim(), wx:String(c.wx || ''), contact:String(c.contact || ''),
+          source:String(c.source || ''), notes:String(c.notes || ''), logs:c.logs || [],
+          status:c.status || 'intent', salesStatus:c.salesStatus || c.sales_status || '',
+          deliveryStatus:c.deliveryStatus || c.delivery_status || '',
+          deliveryRemoved:c.deliveryRemoved || '', salesOrder:c.salesOrder, deliveryOrder:c.deliveryOrder,
+          product:Object.hasOwn(PRODUCT_LABEL, c.product) ? c.product : '无',
+          ...(c.converted ? {converted:c.converted} : {})
+        };
+      });
+      const next = migrate(rows);
+      if (!confirm('导入 '+next.length+' 条，将替换当前 '+data.length+' 条客户记录。继续？')) return;
+      localStorage.setItem(KEY, JSON.stringify(next));
+      data = next;
+      render(); toast('导入成功');
+    } catch(err) { toast('导入失败，请检查文件格式和浏览器存储空间'); }
+    finally { e.target.value=''; }
+  };
+  r.readAsText(f);
+}
+
+/* ---------- Utils ---------- */
+function esc(s){ return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1900);
+}
+document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id==='overlay') closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+render();
+</script>
+</body>
+</html>

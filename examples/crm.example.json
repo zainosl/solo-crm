@@ -1,0 +1,4 @@
+[
+  {"name": "演示客户甲", "source": "朋友推荐", "product": "无", "salesStatus": "intent", "deliveryStatus": "to_serve", "notes": "询问工作坊报价", "logs": []},
+  {"name": "演示客户乙", "source": "线上活动", "product": "01", "salesStatus": "won", "deliveryStatus": "material_collecting", "notes": "已成交，正在准备材料", "logs": []}
+]
